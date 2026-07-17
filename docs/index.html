@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>culvers.com — Architecture Notes</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>culvers.com — Architecture Notes</h1>
+    <p class="subtitle">Redacted public documentation. Auth captures and operational guidance removed.</p>
+  </header>
+  <main id="content">Loading…</main>
+  <footer>
+    <p>Source: <code>docs/RECON-REDACTED.md</code></p>
+  </footer>
+  <script>
+    fetch('RECON-REDACTED.md')
+      .then((response) => {
+        if (!response.ok) throw new Error('Failed to load documentation');
+        return response.text();
+      })
+      .then((markdown) => {
+        document.getElementById('content').innerHTML = marked.parse(markdown);
+      })
+      .catch((error) => {
+        document.getElementById('content').textContent = error.message;
+      });
+  </script>
+</body>
+</html>
