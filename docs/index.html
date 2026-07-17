@@ -4,30 +4,238 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>culvers.com — Architecture Notes</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>:root {
+  color-scheme: light dark;
+  --bg: #0f1419;
+  --surface: #1a2332;
+  --text: #e6edf3;
+  --muted: #9da7b3;
+  --accent: #3b82f6;
+  --border: #2d3748;
+  --code-bg: #111827;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --text: #0f172a;
+    --muted: #64748b;
+    --accent: #2563eb;
+    --border: #e2e8f0;
+    --code-bg: #f1f5f9;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+}
+
+header,
+main,
+footer {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+header {
+  border-bottom: 1px solid var(--border);
+}
+
+header h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+}
+
+main h1,
+main h2,
+main h3 {
+  margin-top: 2rem;
+}
+
+main h1:first-child {
+  display: none;
+}
+
+main p,
+main li {
+  color: var(--text);
+}
+
+main blockquote {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+main pre {
+  overflow-x: auto;
+  padding: 1rem;
+  border-radius: 8px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+}
+
+main code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+main :not(pre) > code {
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  background: var(--code-bg);
+}
+
+main table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.95rem;
+}
+
+main th,
+main td {
+  border: 1px solid var(--border);
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+}
+
+main th {
+  background: var(--surface);
+}
+
+footer {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+</style>
 </head>
 <body>
   <header>
     <h1>culvers.com — Architecture Notes</h1>
     <p class="subtitle">Redacted public documentation. Auth captures and operational guidance removed.</p>
   </header>
-  <main id="content">Loading…</main>
-  <footer>
-    <p>Source: <code>docs/RECON-REDACTED.md</code></p>
-  </footer>
-  <script>
-    fetch('RECON-REDACTED.md')
-      .then((response) => {
-        if (!response.ok) throw new Error('Failed to load documentation');
-        return response.text();
-      })
-      .then((markdown) => {
-        document.getElementById('content').innerHTML = marked.parse(markdown);
-      })
-      .catch((error) => {
-        document.getElementById('content').textContent = error.message;
-      });
-  </script>
+  <main><h1>culvers.com — architecture notes (2026-06-09)</h1>
+<blockquote>High-level infrastructure reconnaissance. Sensitive credentials, session data,</blockquote>
+<blockquote>and operational attack guidance have been removed from this public version.</blockquote>
+<h2>Stack overview</h2>
+<pre><code>
+              Visitor (US IP required)
+                       │
+        ┌──────────────┼─────────────┬─────────────────────┐
+        ▼              ▼             ▼                     ▼
+  www.culvers.com  welcome.        orderonline.       api.culvers.com
+  (CloudFront +    culvers.com     culvers.com        (Azure FD +
+   Check Point     (Azure FD →     (CloudFlare →      Azure APIM)
+   AppSec WAF →    Azure AD B2C)   whitelabel.olo.com)
+   Azure FD →                          │
+   Next.js SSR)                        ▼
+   Agility CMS              Olo whitelabel Next.js
+                            (serve-next.olo.com bundles)
+                                       │
+                                       ▼
+                            api.olo.com (AWS ELB)
+                            + olopayjs.s3.amazonaws.com
+                              (Olo Pay = Stripe Connect)
+</pre>
+<h2>Domains and infrastructure</h2>
+<table>
+<tr><th>Host</th><th>CDN/WAF</th><th>Origin</th></tr>
+<tr><td>---</td><td>---</td><td>---</td></tr>
+<tr><td>`www.culvers.com`</td><td>CloudFront + Check Point Application Security WAF</td><td>Next.js on Azure Front Door</td></tr>
+<tr><td>`culvers.com` (apex)</td><td>CloudFront</td><td>Same as www</td></tr>
+<tr><td>`api.culvers.com`</td><td>Azure Front Door</td><td>Azure API Management (`/gatewaygraphql`)</td></tr>
+<tr><td>`welcome.culvers.com`</td><td>Azure Front Door</td><td>Azure AD B2C tenant</td></tr>
+<tr><td>`orderonline.culvers.com`</td><td>CloudFlare</td><td>Olo Whitelabel Next.js</td></tr>
+<tr><td>`cdn.culvers.com`</td><td>CloudFront</td><td>Static assets (images, logos)</td></tr>
+<tr><td>`m.culvers.com`</td><td>—</td><td>Legacy mobile site</td></tr>
+</table>
+<p>DNS provider: <code>zaccodigitaltrustlabs.com/.net/.se</code>.</p>
+<h2>Frontend — www.culvers.com</h2>
+<li>**Next.js** SSR (`x-powered-by: Next.js`, `__NEXT_DATA__` present)</li>
+<li>`buildId: W2.1.1`</li>
+<li>**Agility CMS** (`AgilityCms.PreviewMode: false`, sitemapNode-based routing)</li>
+<li>Public runtime config (from `__NEXT_DATA__.runtimeConfig`):</li>
+<p>  - GraphQL endpoint: <code>https://api.culvers.com/gatewaygraphql</code></p>
+<p>  - Live Olo integration enabled</p>
+<p>  - Third-party SDKs: Radar.io (location), Amplitude (analytics)</p>
+<li>Edge cache: Next.js ISR (`x-nextjs-cache: STALE/HIT`)</li>
+<h3>Key routes</h3>
+<pre><code>
+/                                — home
+/menu                            — categories + flavor-of-the-day
+/menu/butterburgers              — category
+/menu/butterburgers/&lt;slug&gt;       — product detail pages
+/menu/fresh-frozen-custard       — category
+/flavor-of-the-day               — featured flavor
+/locator                         — restaurant locator (Radar SDK + Google Maps)
+/account                         — login (redirects to Azure B2C)
+/api/auth/redirect               — Next.js OAuth callback (msal.js.node)
+/myculvers                       — 307 → /delicious-rewards
+/rewards                         — loyalty hub
+/delicious-rewards               — rewards portal
+/gift-cards                      — gift cards
+/orderonline                     — 404 on main site; ordering flows through locator
+</pre>
+<p>&quot;Order Now&quot; on product pages routes through <code>/locator</code> first. Users pick a store,</p>
+<p>then get redirected to <code>orderonline.culvers.com</code> with store context in the query string.</p>
+<h2>Authentication — Azure AD B2C</h2>
+<p>Opening <code>/account</code> redirects to Azure AD B2C on <code>welcome.culvers.com</code> using a custom</p>
+<p>policy (<code>b2c_1a_myculvers_signuporsignin</code>) with PKCE and standard OAuth2 parameters.</p>
+<table>
+<tr><th>Parameter</th><th>Notes</th></tr>
+<tr><td>---</td><td>---</td></tr>
+<tr><td>Tenant</td><td>`culversb2cprodv2.onmicrosoft.com`</td></tr>
+<tr><td>Auth library</td><td>`msal.js.node` in Next.js server-side flow</td></tr>
+<tr><td>Redirect</td><td>`https://www.culvers.com/api/auth/redirect` (`response_mode=form_post`)</td></tr>
+<tr><td>Federated IdPs</td><td>Google, Apple</td></tr>
+<tr><td>OIDC discovery</td><td>Hosted on `welcome.culvers.com` with policy query parameter</td></tr>
+</table>
+<p>The B2C UI is Azure-hosted with branded templates. Federation buttons redirect to</p>
+<p>external identity providers with standard OAuth state handling.</p>
+<h2>Order and checkout — Olo Whitelabel</h2>
+<li>**Order portal**: `orderonline.culvers.com` → CNAME `whitelabel.olo.com` → CloudFlare</li>
+<li>Headers include Olo correlation tokens (`olo-trace-id`, `olo-ct`)</li>
+<li>Frontend: Next.js bundles served from `serve-next.olo.com`</li>
+<li>Loading shell uses shimmer placeholders while client bundles hydrate</li>
+<li>Integrations observed in bundles:</li>
+<p>  - CloudFlare Turnstile captcha</p>
+<p>  - Google Maps in checkout</p>
+<p>  - Mixpanel analytics</p>
+<li>Backend API: `api.olo.com` (AWS ELB)</li>
+<li>Payments: **Olo Pay** (Stripe Connect-based SDK from `olopayjs.s3.amazonaws.com`)</li>
+<h2>Bot and WAF layers</h2>
+<table>
+<tr><th>Layer</th><th>Domain</th><th>Behavior</th></tr>
+<tr><td>---</td><td>---</td><td>---</td></tr>
+<tr><td>Check Point Application Security</td><td>`www.culvers.com` via CloudFront</td><td>Blocks non-US / datacenter traffic with WAF HTML response</td></tr>
+<tr><td>Azure API Management</td><td>`api.culvers.com/gatewaygraphql`</td><td>Requires `Ocp-Apim-Subscription-Key` header</td></tr>
+<tr><td>CloudFlare</td><td>`orderonline.culvers.com`</td><td>Standard CF bot management (`__cf_bm` cookie)</td></tr>
+<tr><td>CloudFlare Turnstile</td><td>Olo checkout flow</td><td>Captcha challenge in payment steps</td></tr>
+<tr><td>Azure AD B2C</td><td>`welcome.culvers.com`</td><td>OAuth2 redirect URI validation, PKCE, CSRF state tokens</td></tr>
+</table>
+<h2>Research methodology</h2>
+<p>Public pages were fetched using residential US proxy routing and browser-like TLS</p>
+<p>fingerprints (<code>curl_cffi</code> with Chrome impersonation) because the main site WAF blocks</p>
+<p>typical datacenter IP ranges.</p></main>
+  <footer><p>Redacted architecture notes — public documentation</p></footer>
 </body>
 </html>
